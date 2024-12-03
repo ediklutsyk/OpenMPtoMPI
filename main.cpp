@@ -7,7 +7,7 @@
 
 #include "finders/MainFunctionFinder.cpp"
 #include "finders/OpenMPPragmaFinder.cpp"
-#include "actions/IncludeMPIAndASTActionFactory.cpp"
+#include "actions/PreprocessorAndASTActionFactory.cpp"
 #include "utils/FileUtils.h"
 
 using namespace clang;
@@ -36,7 +36,7 @@ int main(int argc, const char **argv) {
 
     // Запускаємо інструмент
     ClangTool Tool(optionsParser.getCompilations(), optionsParser.getSourcePathList());
-    std::unique_ptr<clang::tooling::FrontendActionFactory> factory = std::make_unique<IncludeMPIAndASTActionFactory>(
+    std::unique_ptr<clang::tooling::FrontendActionFactory> factory = std::make_unique<PreprocessorAndASTActionFactory>(
             finder, replace);
     int toolResult = Tool.run(factory.get());
 

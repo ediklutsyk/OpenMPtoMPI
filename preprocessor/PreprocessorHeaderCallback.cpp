@@ -6,9 +6,9 @@
 using namespace clang;
 using namespace clang::tooling;
 
-class IncludeMPIHeaderCallback : public PPCallbacks {
+class PreprocessorHeaderCallback : public PPCallbacks {
 public:
-    IncludeMPIHeaderCallback(Preprocessor &PP, Replacements &Replaces)
+    PreprocessorHeaderCallback(Preprocessor &PP, Replacements &Replaces)
             : PP(PP), Replaces(Replaces), MPIIncluded(false), LastIncludeInMainFile(SourceLocation()) {}
 
     void InclusionDirective(SourceLocation HashLoc, const Token &IncludeTok,

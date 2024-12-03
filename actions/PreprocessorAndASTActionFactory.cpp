@@ -3,19 +3,19 @@
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/Lex/Preprocessor.h"
 
-#include "IncludeMPIAndASTAction.cpp"
+#include "PreprocessorAndASTAction.cpp"
 
 using namespace clang;
 using namespace clang::tooling;
 using namespace clang::ast_matchers;
 
 // Фабрика для створення дії, яка поєднує обробку директив #include і MatchFinder
-class IncludeMPIAndASTActionFactory : public FrontendActionFactory {
+class PreprocessorAndASTActionFactory : public FrontendActionFactory {
 public:
-    IncludeMPIAndASTActionFactory(MatchFinder &Finder, Replacements &Replaces) : Replaces(Replaces), Finder(Finder) {}
+    PreprocessorAndASTActionFactory(MatchFinder &Finder, Replacements &Replaces) : Replaces(Replaces), Finder(Finder) {}
 
     std::unique_ptr<clang::FrontendAction> create() override {
-        return std::make_unique<IncludeMPIAndASTAction>(Finder, Replaces);
+        return std::make_unique<PreprocessorAndASTAction>(Finder, Replaces);
     }
 
 private:

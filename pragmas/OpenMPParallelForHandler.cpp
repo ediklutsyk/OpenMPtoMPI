@@ -27,61 +27,43 @@ public:
             const std::string &varName = varEntry.first;
             const auto &varInfo = varEntry.second;
             std::string varTypeStr = varInfo.type.getAsString();
-            if (varInfo.isLocal) {
-                // Ігноруємо локальні змінні, оголошені всередині циклу
+            // Отримуємо MPI тип змінної
+            std::string mpiType = getMPITypeFromVariableType(varInfo.type);
+            if (mpiType.empty()) {
+                dataTransferCode += "/* Неможливо визначити MPI тип для змінної " + varName + " */\n";
                 continue;
+            }
+            if (varInfo.isLocal) {
+                continue; // Ігноруємо локальні змінні
             }
             if (varInfo.type->isArrayType() || varInfo.type->isPointerType()) {
                 std::string arrayBaseType = varInfo.type->getAsArrayTypeUnsafe()->getElementType().getAsString();
                 if (varInfo.isRead && !varInfo.isWritten) {
-                    // Випадок 1: Масив використовується для читання (arr[i])
+                    // Масив використовується для читання
                     dataTransferCode += "// Розподіл масиву " + varName + " між процесами\n";
-
-                    // Оголошуємо локальний буфер для отримання даних
                     std::string LocalVarDecl = Variables.useOrInitVariable("local_" + varName, arrayBaseType);
                     dataTransferCode += LocalVarDecl + " [chunk];\n";
-
-                    // Генеруємо код для MPI_Scatter
-                    dataTransferCode += "MPI_Scatter(" + varName + ", chunk, MPI_INT, local_" + varName +
-                                        ", chunk, MPI_INT, 0, MPI_COMM_WORLD);\n";
-
-                    // Додаємо до ReplaceMap
+                    dataTransferCode += "MPI_Scatter(" + varName + ", chunk, " + mpiType + ", local_" + varName +
+                                        ", chunk, " + mpiType + ", 0, MPI_COMM_WORLD);\n";
                     ReplaceMap[varName] = "local_" + varName;
                 } else if (!varInfo.isRead && varInfo.isWritten) {
-                    // Випадок 2: Масив використовується для запису (res[i] = ...)
+                    // Масив використовується для запису
                     dataTransferCode +=
                             "// Підготовка локального буфера для запису результатів у масив " + varName + "\n";
-
                     std::string LocalVarDecl = Variables.useOrInitVariable("local_" + varName, arrayBaseType);
                     dataTransferCode += LocalVarDecl + " [chunk];\n";
-
-                    // Додаємо до ReplaceMap
                     ReplaceMap[varName] = "local_" + varName;
-
-                    // Після циклу додаємо код для MPI_Gather
-                    afterLoopCode += "// Збір результатів з процесів у масив " + varName + "\n";
-                    afterLoopCode += "MPI_Gather(" + ReplaceMap[varName] + ", chunk, MPI_INT, " + varName +
-                                     ", chunk, MPI_INT, 0, MPI_COMM_WORLD);\n";
-                } else if (varInfo.isRead && varInfo.isWritten) {
-                    // Масив читається і записується всередині циклу
-                    dataTransferCode += "/* Змінна " + varName + " читається і записується в циклі. \n";
-                    dataTransferCode += "   Потребує складної обробки для синхронізації між процесами. */\n";
+                    afterLoopCode += "MPI_Gather(" + ReplaceMap[varName] + ", chunk, " + mpiType + ", " + varName +
+                                     ", chunk, " + mpiType + ", 0, MPI_COMM_WORLD);\n";
                 }
             } else if (varInfo.type->isBuiltinType()) {
                 if (varInfo.isRead && !varInfo.isWritten) {
-                    // Випадок 3: Скалярна змінна використовується для читання і ініціалізована поза циклом
                     dataTransferCode += "// Скалярна змінна " + varName + " використовується для читання\n";
-                    dataTransferCode += "MPI_Bcast(&" + varName + ", 1, MPI_INT, 0, MPI_COMM_WORLD);\n";
+                    dataTransferCode += "MPI_Bcast(&" + varName + ", 1, " + mpiType + ", 0, MPI_COMM_WORLD);\n";
                 } else if (varInfo.isWritten) {
-                    // Змінна модифікується в циклі
                     dataTransferCode += "/* Скалярна змінна " + varName + " модифікується в циклі.\n";
                     dataTransferCode += "   Розгляньте можливість використання MPI_Reduce для збору результатів. */\n";
                 }
-            } else {
-                // Інші типи змінних
-                dataTransferCode += "/* Змінна " + varName + " має складний тип (" + varTypeStr +
-                                    ") і потребує ручної обробки.\n";
-                dataTransferCode += "   Рекомендується переглянути використання цієї змінної та адаптувати код відповідно. */\n";
             }
         }
 
@@ -189,7 +171,11 @@ public:
 
         if (hasReduction) {
             std::string LocalReductionVarDecl = Variables.useOrInitVariable("local_" + ReductionVar, "int");
-            MPICode += LocalReductionVarDecl + " = 0;\n";
+            if (ReductionOp == "MPI_PROD") {
+                MPICode += LocalReductionVarDecl + " = 1;\n";
+            } else{
+                MPICode += LocalReductionVarDecl + " = 0;\n";
+            }
             MPICode += "for (int i = start; i < end; ++i)";
             const Stmt *Body = For->getBody();
             llvm::StringRef BodyCode = Lexer::getSourceText(CharSourceRange::getTokenRange(Body->getSourceRange()),
@@ -201,7 +187,7 @@ public:
             MPICode += "MPI_Reduce(&local_" + ReductionVar + ", &" + ReductionVar + ", 1, MPI_INT, " + ReductionOp +
                        ", 0, MPI_COMM_WORLD);\n";
         } else {
-            std::string LoopBodyCode = generateLoopCodeWithReplacements(For->getBody(), ReplaceMap, SM, LangOpts, 0);
+            std::string LoopBodyCode = generateLoopCodeWithReplacements(For->getBody(), ReplaceMap, SM, LangOpts);
             MPICode += "for (int i = start; i < end; ++i)" + LoopBodyCode + "\n";
         }
 
@@ -210,8 +196,40 @@ public:
     }
 
 private:
+
+    std::string getMPITypeFromVariableType(const clang::QualType &type) {
+        if (type->isBuiltinType()) {
+            if (type->isIntegerType()) {
+                return "MPI_INT";
+            } else if (type->isFloatingType()) {
+                return "MPI_FLOAT";
+            } else if (type->isDoubleType()) {
+                return "MPI_DOUBLE";
+            } else if (type->isCharType()) {
+                return "MPI_CHAR";
+            } else if (type->isBooleanType()) {
+                return "MPI_C_BOOL";
+            } else {
+                llvm::errs() << "Unsupported built-in type for MPI conversion: " << type.getAsString() << "\n";
+                return "";
+            }
+        } else if (type->isPointerType() || type->isArrayType()) {
+            const clang::Type *elementType = type->getPointeeOrArrayElementType();
+            if (!elementType) {
+                llvm::errs() << "Failed to retrieve element type for: " << type.getAsString() << "\n";
+                return "";
+            }
+            // Перетворюємо Type у QualType для подальшої обробки
+            clang::QualType qualElementType = elementType->getCanonicalTypeInternal();
+            return getMPITypeFromVariableType(qualElementType);
+        } else {
+            llvm::errs() << "Unsupported type for MPI conversion: " << type.getAsString() << "\n";
+            return "";
+        }
+    }
+
     std::string generateLoopCodeWithReplacements(const Stmt *Body, const std::map<std::string, std::string> &ReplaceMap,
-                                                 const SourceManager &SM, const LangOptions &LangOpts, int StartIndex) {
+                                                 const SourceManager &SM, const LangOptions &LangOpts) {
         llvm::StringRef BodyCode = Lexer::getSourceText(CharSourceRange::getTokenRange(Body->getSourceRange()), SM,
                                                         LangOpts);
         std::string ModifiedBodyCode = BodyCode.str();

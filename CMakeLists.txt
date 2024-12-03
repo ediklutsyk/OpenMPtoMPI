@@ -36,12 +36,8 @@ set(CLANG_LIBS
 
 add_executable(OpenMPtoMPI
         main.cpp
-        utils/FileUtils.cpp
-        utils/StmtUtils.cpp
-        utils/VariableAnalyzer.cpp
-        utils/VariablesHandler.cpp
-        actions/IncludeMPIAndASTAction.cpp
-        actions/IncludeMPIAndASTActionFactory.cpp
+        actions/PreprocessorAndASTAction.cpp
+        actions/PreprocessorAndASTActionFactory.cpp
         finders/MainFunctionFinder.cpp
         finders/OpenMPPragmaFinder.cpp
         pragmas/OpenMPDirectiveBaseHandler.h
@@ -49,6 +45,12 @@ add_executable(OpenMPtoMPI
         pragmas/OpenMPParallelHandler.cpp
         pragmas/OpenMPSingleHandler.cpp
         pragmas/OpenMPBarrierHandler.cpp
+        preprocessor/PreprocessorHeaderCallback.cpp
+        utils/FileUtils.cpp
+        utils/StmtUtils.cpp
+        utils/VariableAnalyzer.cpp
+        utils/VariablesHandler.cpp
+
 )
 
 target_link_libraries(OpenMPtoMPI
