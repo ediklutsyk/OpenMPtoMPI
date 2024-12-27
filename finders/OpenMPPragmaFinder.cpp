@@ -70,7 +70,7 @@ public:
         if (Err) {
             llvm::errs() << "Помилка додавання заміни: " << llvm::toString(std::move(Err)) << "\n";
         } else {
-            llvm::errs() << "Заміна директиви: " << Handler->directiveName() << " додана успішно\n";
+            llvm::outs() << "Заміна директиви: " << Handler->directiveName() << " додана успішно\n";
         }
     }
 
