@@ -22,6 +22,8 @@ public:
 
     virtual std::string handle(const OMPExecutableDirective *OMPDir) = 0;
 
+    virtual std::string directiveName() = 0;
+
 protected:
     SourceManager &SM;
     const LangOptions &LangOpts;

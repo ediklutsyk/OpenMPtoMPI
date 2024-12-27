@@ -36,6 +36,7 @@ set(CLANG_LIBS
 
 add_executable(OpenMPtoMPI
         main.cpp
+#        tests/test1.cpp
         actions/PreprocessorAndASTAction.cpp
         actions/PreprocessorAndASTActionFactory.cpp
         finders/MainFunctionFinder.cpp
@@ -44,6 +45,7 @@ add_executable(OpenMPtoMPI
         pragmas/OpenMPParallelForHandler.cpp
         pragmas/OpenMPParallelHandler.cpp
         pragmas/OpenMPSingleHandler.cpp
+        pragmas/OpenMPMasterHandler.cpp
         pragmas/OpenMPBarrierHandler.cpp
         preprocessor/PreprocessorHeaderCallback.cpp
         utils/FileUtils.cpp

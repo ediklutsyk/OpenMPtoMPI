@@ -60,10 +60,11 @@ public:
                 if (varInfo.isRead && !varInfo.isWritten) {
                     dataTransferCode += "// Скалярна змінна " + varName + " використовується для читання\n";
                     dataTransferCode += "MPI_Bcast(&" + varName + ", 1, " + mpiType + ", 0, MPI_COMM_WORLD);\n";
-                } else if (varInfo.isWritten) {
-                    dataTransferCode += "/* Скалярна змінна " + varName + " модифікується в циклі.\n";
-                    dataTransferCode += "   Розгляньте можливість використання MPI_Reduce для збору результатів. */\n";
                 }
+//                else if (varInfo.isWritten) {
+//                    dataTransferCode += "/* Скалярна змінна " + varName + " модифікується в циклі.\n";
+//                    dataTransferCode += "   Розгляньте можливість використання MPI_Reduce для збору результатів. */\n";
+//                }
             }
         }
 
@@ -164,11 +165,12 @@ public:
                 }
             }
         }
-
-        MPICode += dataTransferCode + "\n";
-        MPICode += beforeLoopCode + "\n";
-
-
+        if (!dataTransferCode.empty()) {
+            MPICode += dataTransferCode + "\n";
+        }
+        if (!beforeLoopCode.empty()) {
+            MPICode += beforeLoopCode + "\n";
+        }
         if (hasReduction) {
             std::string LocalReductionVarDecl = Variables.useOrInitVariable("local_" + ReductionVar, "int");
             if (ReductionOp == "MPI_PROD") {
@@ -190,9 +192,14 @@ public:
             std::string LoopBodyCode = generateLoopCodeWithReplacements(For->getBody(), ReplaceMap, SM, LangOpts);
             MPICode += "for (int i = start; i < end; ++i)" + LoopBodyCode + "\n";
         }
-
-        MPICode += afterLoopCode + "\n";
+        if (!afterLoopCode.empty()) {
+            MPICode += afterLoopCode + "\n";
+        }
         return MPICode;
+    }
+
+    std::string directiveName() override {
+        return "#pragma omp parallel for";
     }
 
 private:

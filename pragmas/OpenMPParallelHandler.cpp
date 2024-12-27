@@ -20,4 +20,8 @@ public:
         return getCodeBlockWithoutBraces(InnerCode.str());
     }
 
+    std::string directiveName() override {
+        return "#pragma omp parallel";
+    }
+
 };

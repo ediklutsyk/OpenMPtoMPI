@@ -25,7 +25,6 @@ int main(int argc, const char **argv) {
         return 1;
     }
     CommonOptionsParser &optionsParser = expectedParser.get();
-
     // Створюємо об'єкт Replacements для зберігання всіх змін
     Replacements replace;
     MatchFinder finder;
@@ -36,6 +35,7 @@ int main(int argc, const char **argv) {
 
     // Запускаємо інструмент
     ClangTool Tool(optionsParser.getCompilations(), optionsParser.getSourcePathList());
+    llvm::outs() << "Запуск інструменту...\n";
     std::unique_ptr<clang::tooling::FrontendActionFactory> factory = std::make_unique<PreprocessorAndASTActionFactory>(
             finder, replace);
     int toolResult = Tool.run(factory.get());

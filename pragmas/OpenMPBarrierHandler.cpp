@@ -11,4 +11,8 @@ public:
         return "MPI_Barrier(MPI_COMM_WORLD);\n";
     }
 
+    std::string directiveName() override {
+        return "#pragma omp barrier";
+    }
+
 };

@@ -7,6 +7,7 @@
 #include "../pragmas/OpenMPParallelForHandler.cpp"
 #include "../pragmas/OpenMPParallelHandler.cpp"
 #include "../pragmas/OpenMPSingleHandler.cpp"
+#include "../pragmas/OpenMPMasterHandler.cpp"
 #include "../pragmas/OpenMPBarrierHandler.cpp"
 
 using namespace clang;
@@ -45,8 +46,10 @@ public:
             Handler = std::make_unique<OpenMPParallelHandler>(Result, Variables);
         } else if (isa<OMPParallelForDirective>(OMPDir)) {
             Handler = std::make_unique<OpenMPParallelForHandler>(Result, Variables);
-        } else if (isa<OMPSingleDirective>(OMPDir) || isa<OMPMasterDirective>(OMPDir)) {
+        } else if (isa<OMPSingleDirective>(OMPDir)) {
             Handler = std::make_unique<OpenMPSingleHandler>(Result, Variables);
+        } else if (isa<OMPMasterDirective>(OMPDir)) {
+            Handler = std::make_unique<OpenMPMasterHandler>(Result, Variables);
         } else if (isa<OMPBarrierDirective>(OMPDir)) {
             Handler = std::make_unique<OpenMPBarrierHandler>(Result, Variables);
         } else {
@@ -67,7 +70,7 @@ public:
         if (Err) {
             llvm::errs() << "Помилка додавання заміни: " << llvm::toString(std::move(Err)) << "\n";
         } else {
-            llvm::errs() << "Заміна додана успішно\n";
+            llvm::errs() << "Заміна директиви: " << Handler->directiveName() << " додана успішно\n";
         }
     }
 

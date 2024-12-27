@@ -1,9 +1,9 @@
 #include "clang/Lex/Lexer.h"
 #include "OpenMPDirectiveBaseHandler.h"
 
-class OpenMPSingleHandler : public OpenMPDirectiveBaseHandler {
+class OpenMPMasterHandler : public OpenMPDirectiveBaseHandler {
 public:
-    OpenMPSingleHandler(const MatchFinder::MatchResult &Result, VariablesHandler &VariablesHandler)
+    OpenMPMasterHandler(const MatchFinder::MatchResult &Result, VariablesHandler &VariablesHandler)
             : OpenMPDirectiveBaseHandler(Result, VariablesHandler) {
     }
 
@@ -16,7 +16,7 @@ public:
     }
 
     std::string directiveName() override {
-        return "#pragma omp single";
+        return "#pragma omp master";
     }
 
 };

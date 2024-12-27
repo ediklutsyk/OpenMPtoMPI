@@ -2,15 +2,14 @@
 #include <stdio.h>
 
 void testOpenMPDirectives() {
-//    int sum = 0;
-    int prod =1;
+    int prod = 1;
 #pragma omp parallel for reduction(*:prod)
     for (int i = 1; i <= 10; ++i) {
         prod *= i;
     }
 #pragma omp master
     {
-        printf("Sum: %d\n", prod);
+        printf("Prod: %d\n", prod);
     }
 }
 
